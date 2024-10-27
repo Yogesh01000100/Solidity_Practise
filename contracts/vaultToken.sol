@@ -8,6 +8,6 @@ contract VaultToken is ERC20 {
 
     constructor(address _vaultAddress) ERC20("VToken", "VTK") {
         i_owner=msg.sender;
-        _mint(_vaultAddress, 15);
+        _mint(_vaultAddress, 20);
     }
 }
