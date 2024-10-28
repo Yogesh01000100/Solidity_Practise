@@ -10,13 +10,14 @@ contract vault {
         uint256 ethContributions;
         bool isRegistered;
     }
-    VaultToken token;
-    bool isMinted;
+    VaultToken public token;
+
     uint256 public constant tokenVaultPrice = 2 ether;
     mapping(address => Member) public memberInfo;
 
-    constructor() {
+    constructor(address _tokenAddress) {
         i_owner = msg.sender;
+        token = VaultToken(_tokenAddress);
     }
 
     modifier onlyOwner() {
@@ -29,20 +30,12 @@ contract vault {
         _;
     }
 
-    function mintTokens() public onlyOwner {
-        require(!isMinted, "already minted tokens");
-        token = new VaultToken(address(this));
-        isMinted = true;
-    }
-
     function getTokenBalance() external view onlyOwner returns (uint256) {
-        require(isMinted, "not minted tokens");
         return token.balanceOf(address(this));
     }
 
-    function buyTokens() external payable onlyUser{
+    function buyTokens() external payable onlyUser {
         require(msg.value >= 1 ether, "need to contribute atleast 1 ether!");
-        require(msg.sender != i_owner, "Not allowed!");
         uint256 _vaultToken = msg.value / tokenVaultPrice;
 
         require(
@@ -69,9 +62,14 @@ contract vault {
         return memberInfo[msg.sender].vaultToken;
     }
 
-    function withDraw() external onlyUser{
-        require(msg.sender != i_owner, "Not allowed!");
+    function withDraw() external onlyUser {
+        require(address(token) != address(0), "Token not initialized");
         uint256 share = memberInfo[msg.sender].vaultToken;
+        require(
+            token.allowance(msg.sender, address(this)) >= share,
+            "Approve the Vault first"
+        );
+        token.transferFrom(msg.sender, address(this), share);
         memberInfo[msg.sender].vaultToken = 0;
         memberInfo[msg.sender].ethContributions = 0;
         payable(msg.sender).transfer(share * tokenVaultPrice);
